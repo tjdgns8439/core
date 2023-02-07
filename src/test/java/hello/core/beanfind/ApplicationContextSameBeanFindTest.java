@@ -1,47 +1,58 @@
 package hello.core.beanfind;
 
-import hello.core.AppConfig;
-import hello.core.member.MemberService;
-
-import hello.core.member.MemberServiceImpl;
-import org.assertj.core.api.Assertions;
+import hello.core.member.MemberRepository;
+import hello.core.member.MemoryMemberRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.NoSuchBeanDefinitionException;
+import org.springframework.beans.factory.NoUniqueBeanDefinitionException;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import java.util.Map;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-public class ApplicationContextSameBeanFindTest {
-    AnnotationConfigApplicationContext ac = new AnnotationConfigApplicationContext(AppConfig.class);
-
+class ApplicationContextSameBeanFindTest {
+    AnnotationConfigApplicationContext ac = new
+            AnnotationConfigApplicationContext(SameBeanConfig.class);
     @Test
-    @DisplayName("빈 이름으로 조회")
-    void findAllBean(){
-        MemberService memberService = ac.getBean("memberService", MemberService.class);
-        Assertions.assertThat(memberService).isInstanceOf(MemberServiceImpl.class);
-        //memberService가 MemberServiceImpl의 객체면 통과
+    @DisplayName("타입으로 조회시 같은 타입이 둘 이상 있으면, 중복 오류가 발생한다") void findBeanByTypeDuplicate() {
+        //MemberRepository bean = ac.getBean(MemberRepository.class);
+        assertThrows(NoUniqueBeanDefinitionException.class, () ->
+                ac.getBean(MemberRepository.class));
     }
 
     @Test
-    @DisplayName("이름 없이 타입으로만 조회")
-    void findAllBeanType(){
-        MemberService memberService = ac.getBean(MemberService.class);
-        Assertions.assertThat(memberService).isInstanceOf(MemberServiceImpl.class);
+    @DisplayName("타입으로 조회시 같은 타입이 둘 이상 있으면, 빈 이름을 지정하면 된다") void findBeanByName() {
+        MemberRepository memberRepository = ac.getBean("memberRepository1",
+                MemberRepository.class);
+        assertThat(memberRepository).isInstanceOf(MemberRepository.class);
     }
 
     @Test
-    @DisplayName("구체 타입으로 조회")
-    void findAllBeanType2(){
-        MemberService memberService = ac.getBean("memberService", MemberServiceImpl.class);
-        Assertions.assertThat(memberService).isInstanceOf(MemberServiceImpl.class);
-    }//구현에 의존했기에 좋은 코드가 아님.
+    @DisplayName("특정 타입을 모두 조회하기")
+    void findAllBeanByType() {
+        Map<String, MemberRepository> beansOfType =
+                ac.getBeansOfType(MemberRepository.class);
+        for (String key : beansOfType.keySet()) {
+            System.out.println("key = " + key + " value = " +
+                    beansOfType.get(key));
+        }
+        System.out.println("beansOfType = " + beansOfType);
+        assertThat(beansOfType.size()).isEqualTo(2);
+    }
 
-    @Test
-    @DisplayName("빈 이름으로 조회된 것이 없음.")
-    void findBeanByNameX(){
-//        org.junit.jupiter.api.Assertions.assertThrows() -> 너무 길어서 아래 코드는 static import한 코드
-        assertThrows(NoSuchBeanDefinitionException.class, () ->      //2. 이 예외가 터져야 함.
-                ac.getBean("xxxxxx", MemberServiceImpl.class));//1. 이 로직을 실행했을 때
+    //동일한 타입이 있는 것을 가정하기 위해 만든 class (클래스 내부의 클래스이기에 static)
+    @Configuration
+    static class SameBeanConfig {
+        @Bean
+        public MemberRepository memberRepository1() {
+            return new MemoryMemberRepository();
+        }
+        @Bean
+        public MemberRepository memberRepository2() {
+            return new MemoryMemberRepository();
+        }
     }
 }
