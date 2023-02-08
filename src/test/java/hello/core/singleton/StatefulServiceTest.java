@@ -20,7 +20,7 @@ class StatefulServiceTest {
         int userAPrice = statefulService1.order("userA", 10000);
         //ThreadB: B사용자가 20000원 주문
         int userBPrice = statefulService2.order("userB", 20000);
-        
+
 
         System.out.println("Aprice = " + userAPrice);
         System.out.println("Bprice = " + userBPrice);
